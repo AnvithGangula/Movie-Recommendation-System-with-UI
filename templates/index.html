@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CineMatch – Movie Recommender</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f6fb;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 { font-size: 1.6rem; }
+    header span { font-size: 0.9rem; color: #94a3b8; margin-top: 2px; display: block; }
+
+    /* ── Main layout ── */
+    .page { max-width: 960px; margin: 36px auto; padding: 0 20px; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid #d1d5db;
+      margin-bottom: 28px;
+    }
+    .tab {
+      padding: 10px 28px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #6b7280;
+      margin-bottom: -2px;
+      transition: color .15s, border-color .15s;
+    }
+    .tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+    .tab:hover:not(.active) { color: #374151; }
+
+    /* ── Panel card ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .card-box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px 32px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+      margin-bottom: 28px;
+    }
+    .card-box h2 { font-size: 1.15rem; color: #1a1a2e; margin-bottom: 4px; }
+    .card-box .desc { font-size: 0.85rem; color: #6b7280; margin-bottom: 22px; }
+
+    /* ── Form ── */
+    .form-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 160px; }
+    label { font-size: 0.78rem; font-weight: 700; color: #374151; letter-spacing: .4px; }
+    select, input[type=number] {
+      padding: 9px 12px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: #1a1a2e;
+      background: #fff;
+      outline: none;
+      transition: border-color .15s;
+    }
+    select:focus, input:focus { border-color: #4f46e5; }
+    .form-group.narrow { max-width: 110px; }
+
+    .btn {
+      padding: 9px 28px;
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: #4338ca; }
+
+    /* ── Status / spinner ── */
+    .status {
+      text-align: center;
+      color: #6b7280;
+      padding: 20px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    /* ── Results section ── */
+    .results-area { margin-top: 4px; }
+
+    .method-label {
+      display: inline-block;
+      background: #eef2ff;
+      color: #4f46e5;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 3px 12px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+    }
+
+    /* Simple clean table layout */
+    .rec-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .rec-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 14px 18px;
+      transition: box-shadow .15s;
+    }
+    .rec-item:hover { box-shadow: 0 2px 10px rgba(79,70,229,.12); border-color: #c7d2fe; }
+
+    .rec-rank {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #c7d2fe;
+      min-width: 28px;
+      text-align: center;
+    }
+
+    .rec-info { flex: 1; }
+    .rec-title { font-size: 1rem; font-weight: 700; color: #1a1a2e; margin-bottom: 3px; }
+    .rec-meta { font-size: 0.8rem; color: #6b7280; }
+
+    .rec-score-col { text-align: right; min-width: 80px; }
+    .rec-score-num { font-size: 0.85rem; font-weight: 700; color: #4f46e5; }
+    .rec-score-bar {
+      height: 5px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      margin-top: 4px;
+      overflow: hidden;
+    }
+    .rec-score-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4f46e5, #818cf8);
+      border-radius: 3px;
+    }
+
+    .empty-msg {
+      text-align: center;
+      color: #9ca3af;
+      padding: 32px;
+      font-size: 0.9rem;
+    }
+
+    footer {
+      text-align: center;
+      color: #9ca3af;
+      font-size: 0.78rem;
+      padding: 32px 0 24px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🎬 CineMatch</h1>
+    <span>Movie Recommendation System · Content-Based · Collaborative · Hybrid</span>
+  </div>
+</header>
+
+<div class="page">
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('content', this)">Content-Based</button>
+    <button class="tab" onclick="switchTab('collab', this)">Collaborative</button>
+    <button class="tab" onclick="switchTab('hybrid', this)">Hybrid</button>
+  </div>
+
+  <!-- ── Content-Based Panel ── -->
+  <div class="panel active" id="panel-content">
+    <div class="card-box">
+      <h2>Content-Based Filtering</h2>
+      <p class="desc">Finds movies with similar overviews to the one you pick, using TF-IDF and cosine similarity.</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>MOVIE YOU LIKE</label>
+          <select id="cb-title">
+            {% for t in titles %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group narrow">
+          <label>RESULTS</label>
+          <input type="number" id="cb-n" value="5" min="1" max="10">
+        </div>
+        <button class="btn" onclick="getContent()">Recommend</button>
+      </div>
+    </div>
+    <div class="status" id="spin-cb">🔍 Finding similar movies…</div>
+    <div class="results-area" id="res-cb"></div>
+  </div>
+
+  <!-- ── Collaborative Panel ── -->
+  <div class="panel" id="panel-collab">
+    <div class="card-box">
+      <h2>Popularity-Based Recommendations</h2>
+      <p class="desc">Returns top-rated movies using a Bayesian weighted score (vote average × vote count), like collaborative community picks.</p>
+      <div class="form-row">
+        <div class="form-group narrow">
+          <label>YOUR USER ID</label>
+          <select id="cf-user">
+            {% for uid in user_ids %}<option value="{{ uid }}">User {{ uid }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group narrow">
+          <label>RESULTS</label>
+          <input type="number" id="cf-n" value="5" min="1" max="10">
+        </div>
+        <button class="btn" onclick="getCollab()">Recommend</button>
+      </div>
+    </div>
+    <div class="status" id="spin-cf">🔍 Fetching top picks…</div>
+    <div class="results-area" id="res-cf"></div>
+  </div>
+
+  <!-- ── Hybrid Panel ── -->
+  <div class="panel" id="panel-hybrid">
+    <div class="card-box">
+      <h2>Hybrid Recommendation</h2>
+      <p class="desc">Blends content similarity (60%) with popularity score (40%) for balanced, diverse results.</p>
+      <div class="form-row">
+        <div class="form-group narrow">
+          <label>YOUR USER ID</label>
+          <select id="h-user">
+            {% for uid in user_ids %}<option value="{{ uid }}">User {{ uid }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>MOVIE YOU LIKE</label>
+          <select id="h-title">
+            {% for t in titles %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group narrow">
+          <label>RESULTS</label>
+          <input type="number" id="h-n" value="5" min="1" max="10">
+        </div>
+        <button class="btn" onclick="getHybrid()">Recommend</button>
+      </div>
+    </div>
+    <div class="status" id="spin-h">🔍 Blending recommendations…</div>
+    <div class="results-area" id="res-h"></div>
+  </div>
+</div>
+
+<footer>CineMatch · Built with Python, Flask, scikit-learn · Course Project</footer>
+
+<script>
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+function renderResults(containerId, data) {
+  const el = document.getElementById(containerId);
+  if (!data.results || data.results.length === 0) {
+    el.innerHTML = '<p class="empty-msg">No recommendations found. Try a different movie.</p>';
+    return;
+  }
+
+  // Compute max score for bar scaling
+  const maxScore = Math.max(...data.results.map(r => parseFloat(r.score) || 1));
+
+  const items = data.results.map((r, i) => {
+    const score = parseFloat(r.score) || 0;
+    const pct = Math.min((score / maxScore) * 100, 100).toFixed(1);
+    const rating = r.rating ? ` · ⭐ ${parseFloat(r.rating).toFixed(1)}` : '';
+    const year = r.year && r.year > 0 ? ` · ${r.year}` : '';
+    return `
+      <div class="rec-item">
+        <div class="rec-rank">#${i + 1}</div>
+        <div class="rec-info">
+          <div class="rec-title">${r.title}</div>
+          <div class="rec-meta">${year}${rating}</div>
+        </div>
+        <div class="rec-score-col">
+          <div class="rec-score-num">Score: ${score.toFixed(3)}</div>
+          <div class="rec-score-bar">
+            <div class="rec-score-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="method-label">${data.method}</div>
+    <div class="rec-list">${items}</div>`;
+}
+
+async function post(url, body) {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+async function getContent() {
+  const spin = document.getElementById('spin-cb');
+  const res  = document.getElementById('res-cb');
+  spin.style.display = 'block'; res.innerHTML = '';
+  try {
+    const data = await post('/api/content', {
+      title: document.getElementById('cb-title').value,
+      n: parseInt(document.getElementById('cb-n').value)
+    });
+    renderResults('res-cb', data);
+  } catch(e) {
+    res.innerHTML = '<p class="empty-msg">Error fetching recommendations. Is the server running?</p>';
+  }
+  spin.style.display = 'none';
+}
+
+async function getCollab() {
+  const spin = document.getElementById('spin-cf');
+  const res  = document.getElementById('res-cf');
+  spin.style.display = 'block'; res.innerHTML = '';
+  try {
+    const data = await post('/api/collaborative', {
+      user_id: parseInt(document.getElementById('cf-user').value),
+      n: parseInt(document.getElementById('cf-n').value)
+    });
+    renderResults('res-cf', data);
+  } catch(e) {
+    res.innerHTML = '<p class="empty-msg">Error fetching recommendations.</p>';
+  }
+  spin.style.display = 'none';
+}
+
+async function getHybrid() {
+  const spin = document.getElementById('spin-h');
+  const res  = document.getElementById('res-h');
+  spin.style.display = 'block'; res.innerHTML = '';
+  try {
+    const data = await post('/api/hybrid', {
+      user_id: parseInt(document.getElementById('h-user').value),
+      title: document.getElementById('h-title').value,
+      n: parseInt(document.getElementById('h-n').value)
+    });
+    renderResults('res-h', data);
+  } catch(e) {
+    res.innerHTML = '<p class="empty-msg">Error fetching recommendations.</p>';
+  }
+  spin.style.display = 'none';
+}
+</script>
+</body>
+</html>
