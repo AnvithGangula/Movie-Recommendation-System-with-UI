@@ -18,4 +18,4 @@ Open http://localhost:5000
 Place `Movies.csv` in the project root (same directory as `app.py`).
 
 ## Repository
-[GitHub link — add your repo URL here]
+https://github.com/AnvithGangula/Movie-Recommendation-System-with-UI
